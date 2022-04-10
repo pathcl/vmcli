@@ -8,15 +8,15 @@ set -e
 # skip_cleanup=1
 
 # disk size, default to 4096 mb
-disk_size=4096 # 4096 MB
+disk_size=124096 # 4096 MB
 
 # write default config, change if needed
 cat << EOF > vm.conf
 kernel=vmlinux
 initrd=initrd
 cmdline=console=hvc0 irqfixup root=/dev/vda
-cpu-count=1
-memory-size=1024
+cpu-count=2
+memory-size=4096
 disk=disk.img
 network=nat
 EOF
@@ -27,8 +27,8 @@ if [ "$arch" = "x86_64" ]; then
 	arch="amd64"
 fi
 
-if [ ! -e ~/.ssh/id_rsa.pub ]; then
-	echo "cannot find ~/.ssh/id_rsa.pub, stop" >&2
+if [ ! -e ~/.ssh/id_ed25519.pub ]; then
+	echo "cannot find ~/.ssh/id_ed25519.pub, stop" >&2
 	exit 1
 fi
 
@@ -57,15 +57,24 @@ rm README
 # create cloudinit config
 cat << EOF > user.yaml
 users:
-  - name: $USER
+  - name: pathcl
     lock_passwd: False
-    gecos: $USER
+    gecos: pathcl
     groups: [adm, audio, cdrom, dialout, dip, floppy, lxd, netdev, plugdev, sudo, video]
     sudo: ["ALL=(ALL) NOPASSWD:ALL"]
     shell: /bin/bash
     ssh-authorized-keys: 
-      - $(cat ~/.ssh/id_rsa.pub | head -n 1)
+      - $(cat ~/.ssh/id_ed25519.pub | head -n 1)
 EOF
+
+
+cat << EOF > hostname.yaml
+hostname: labs
+fqdn: labs.sanmartin.dev
+prefer_fqdn_over_hostname: true
+EOF
+
+
 
 # boot into initramfs to modify the disk image
 cat << EOFOUTER | expect | sed 's/[^[:print:]]//g'
@@ -79,6 +88,9 @@ send -- "mount /dev/vda /mnt\r"
 expect "(initramfs) "
 send -- "cat << EOF > /mnt/etc/cloud/cloud.cfg.d/99_user.cfg\r"
 send [exec cat user.yaml]
+send -- "\rEOF\r"
+send -- "cat << EOF > /mnt/etc/cloud/cloud.cfg.d/99_hostname.cfg\r"
+send [exec cat hostname.yaml]
 send -- "\rEOF\r"
 expect "(initramfs) "
 send -- "chroot /mnt\r"

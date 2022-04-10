@@ -27,6 +27,6 @@ install: all
 build/vm: build
 	mkdir -p build/vm
 
-build/vm/ubuntu: build/vm
-	mkdir -p build/vm/ubuntu
-	cd build/vm/ubuntu && ../../../vmbuilders/ubuntu.sh
+build/vm/labs: build/vm
+	mkdir -p build/vm/labs
+	cd build/vm/labs && ../../../vmbuilders/labs.sh
